@@ -48,3 +48,16 @@ log "  cd $PUBLISH_DIR"
 log "  ASPNETCORE_URLS=http://+:$APP_PORT dotnet Task5.dll"
 log "Then access the app at http://$SERVER_IP:$APP_PORT"
 log "To stop the app, press Ctrl+C in the terminal where it's running."
+
+# Stop and remove existing container if it exists
+docker stop task5-app || true
+docker rm task5-app || true
+
+# Pull the latest image
+docker pull yeasir/task5:latest
+
+# Run the container
+docker run -d \
+  --name task5-app \
+  -p 5000:80 \
+  yeasir/task5:latest
