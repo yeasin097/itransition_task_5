@@ -1,0 +1,62 @@
+# Build Folders
+bin/
+obj/
+
+# User-specific Files
+*.user
+*.vspscc
+*.vssscc
+*.suo
+*.ntvs*
+*.njsproj
+*.sln*
+*.sw?
+
+# Visual Studio Code settings
+.vscode/
+
+# Rider project files
+.idea/
+
+# Logs and Debugging
+logs/
+*.log
+*.tlog
+
+# Dependency Caches
+node_modules/
+packages/
+.vs/
+TestResults/
+__pycache__/
+
+# Configuration
+appsettings*.json
+secrets.json
+
+# Entity Framework Migrations
+Migrations/
+
+# ASP.NET Temporary Files
+wwwroot/node_modules/
+wwwroot/lib/
+bundleconfig.json
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Resharper
+*.DotSettings.user
+
+# MacOS/Linux
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# JetBrains Rider
+.idea/

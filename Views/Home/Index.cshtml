@@ -1,0 +1,509 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="controls">
+    <div class="form-group">
+        <label for="language">Language:</label>
+        <select id="language" class="form-control">
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="es">Spanish</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="seed">Seed:</label>
+        <div class="input-group">
+            <input type="number" id="seed" class="form-control" value="0" min="0">
+            <button onclick="randomizeSeed()" class="btn btn-secondary">🎲</button>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="avgLikes">Average Likes:</label>
+        <input type="number" id="avgLikes" class="form-control" value="5" min="0">
+    </div>
+    <div class="form-group">
+        <label for="avgReviews">Average Reviews:</label>
+        <input type="number" id="avgReviews" class="form-control" value="2" min="0">
+    </div>
+    <!-- Hidden inputs for fixed values -->
+    <input type="hidden" id="booksPerPage" value="20">
+    <input type="hidden" id="totalBooks" value="1000000">
+    <div class="form-group button-group">
+        <button onclick="toggleView()" class="btn btn-primary">
+            <span id="viewIcon">📋</span>
+            <span id="viewText">Switch to Gallery</span>
+        </button>
+        <button onclick="exportToCsv()" class="btn btn-success">Export to CSV</button>
+    </div>
+</div>
+
+<div id="bookTable" class="book-container">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Index</th>
+                <th>ISBN</th>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>Publisher</th>
+                <th>Likes</th>
+                <th>Reviews</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div id="gallery" class="book-container hidden"></div>
+
+<div id="loadingIndicator" class="hidden">
+    Loading more books...
+</div>
+
+<div id="bookModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="bookDetails"></div>
+    </div>
+</div>
+
+<style>
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .book-container {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .book-container.fade {
+        opacity: 0;
+    }
+
+    #gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 2rem;
+        padding: 1rem;
+    }
+
+    .gallery-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .gallery-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .gallery-card img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .gallery-card h3 {
+        margin: 0.5rem 0;
+        font-size: 1.2rem;
+    }
+
+    .gallery-card .publisher {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .gallery-card .stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal.hidden {
+        display: none !important;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .close {
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+        font-size: 2rem;
+        cursor: pointer;
+        z-index: 1001;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        background: white;
+        border-radius: 50%;
+        opacity: 1;
+    }
+
+    .close:hover {
+        opacity: 0.8;
+        background: #f0f0f0;
+    }
+
+    .book-details {
+        margin-top: 1rem;
+    }
+
+    .book-header {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .book-cover {
+        width: 200px;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .book-info p {
+        margin: 0.5rem 0;
+    }
+
+    .reviews-list {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .review {
+        border: 1px solid #eee;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .reviewer-info .company {
+        color: #666;
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+
+    .rating {
+        color: gold;
+    }
+
+    .review-text {
+        margin: 0;
+        color: #444;
+    }
+
+    #loadingIndicator {
+        text-align: center;
+        padding: 1rem;
+        color: #666;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let page = 1;
+        let loading = false;
+        let isGalleryView = false;
+        let hasMore = true;
+
+        async function fetchBooks() {
+            if (loading || !hasMore) return;
+            loading = true;
+
+            const language = document.getElementById("language").value;
+            const seed = document.getElementById("seed").value;
+            const avgLikes = document.getElementById("avgLikes").value;
+            const avgReviews = document.getElementById("avgReviews").value;
+            const booksPerPage = 15;
+            const totalBooks = 1000; 
+
+            try {
+                const response = await fetch(`/api/books?language=${language}&seed=${seed}&avgLikes=${avgLikes}&avgReviews=${avgReviews}&page=${page}&booksPerPage=${booksPerPage}&totalBooks=${totalBooks}`);
+                const books = await response.json();
+
+                if (books.length === 0) {
+                    hasMore = false;
+                    loading = false;
+                    return;
+                }
+
+                if (isGalleryView) {
+                    renderGallery(books);
+                } else {
+                    renderTable(books);
+                }
+
+                page++;
+            } catch (error) {
+                console.error('Error fetching books:', error);
+            } finally {
+                loading = false;
+                document.getElementById("loadingIndicator").classList.add("hidden");
+            }
+        }
+
+        function renderTable(books) {
+            const tbody = document.querySelector("#bookTable tbody");
+            books.forEach(book => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${book.index}</td>
+                    <td>${book.isbn}</td>
+                    <td>${book.title}</td>
+                    <td>${book.authors}</td>
+                    <td>${book.publisher}</td>
+                    <td>${book.likes} 👍</td>
+                    <td>${book.reviews.length} ⭐</td>
+                `;
+                row.onclick = () => showDetails(book);
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderGallery(books) {
+            const gallery = document.getElementById("gallery");
+            books.forEach(book => {
+                const card = document.createElement("div");
+                card.className = "gallery-card";
+                card.innerHTML = `
+                    <img src="${book.coverImageUrl}" alt="${book.title}" />
+                    <h3>${book.title}</h3>
+                    <p>${book.authors}</p>
+                    <p class="publisher">${book.publisher}</p>
+                    <div class="stats">
+                        <span>${book.likes} 👍</span>
+                        <span>${book.reviews.length} ⭐</span>
+                    </div>
+                `;
+                card.onclick = () => showDetails(book);
+                gallery.appendChild(card);
+            });
+        }
+
+        function showDetails(book) {
+            console.log('Book details:', book);
+            const reviews = book.reviews && book.reviews.length ?
+                `<div class="reviews">
+                    <h4>Reviews (${book.reviews.length})</h4>
+                    <div class="reviews-list">
+                        ${book.reviews.map(review => `
+                            <div class="review">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <strong>${review.reviewerName}</strong>
+                                        <span class="company">${review.company}</span>
+                                    </div>
+                                    <div class="rating">
+                                        ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                                    </div>
+                                </div>
+                                <p class="review-text">${review.reviewText}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>` :
+                "<p>No reviews yet</p>";
+
+            const details = `
+                <div class="book-details">
+                    <div class="book-header">
+                        <img src="${book.coverImageUrl}" alt="${book.title}" class="book-cover" />
+                        <div class="book-info">
+                            <h2>${book.title}</h2>
+                            <p class="authors"><strong>Authors:</strong> ${book.authors}</p>
+                            <p class="publisher"><strong>Publisher:</strong> ${book.publisher}</p>
+                            <p class="isbn"><strong>ISBN:</strong> ${book.isbn}</p>
+                            <p class="publish-year"><strong>Published:</strong> ${book.publishYear}</p>
+                            <div class="likes-container">
+                                <strong>Likes:</strong>
+                                ${book.likes > 0 ? '👍' : 'No likes yet'}
+                                ${book.likes > 0 ? `<span class="likes-count">(${book.likes})</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ${reviews}
+                </div>
+            `;
+
+            document.getElementById("bookDetails").innerHTML = details;
+            document.getElementById("bookModal").classList.remove("hidden");
+        }
+
+        function randomizeSeed() {
+            document.getElementById("seed").value = Math.floor(Math.random() * 10000);
+            resetAndFetch();
+        }
+
+        function resetAndFetch() {
+            page = 1;
+            hasMore = true;
+            if (isGalleryView) {
+                document.getElementById("gallery").innerHTML = "";
+            } else {
+                document.querySelector("#bookTable tbody").innerHTML = "";
+            }
+            fetchBooks();
+        }
+
+        function exportToCsv() {
+            const language = document.getElementById("language").value;
+            const seed = document.getElementById("seed").value;
+            const avgLikes = document.getElementById("avgLikes").value;
+            const avgReviews = document.getElementById("avgReviews").value;
+            const totalBooks = document.getElementById("totalBooks").value;
+            window.location.href = `/api/books/export?language=${language}&seed=${seed}&avgLikes=${avgLikes}&avgReviews=${avgReviews}&totalBooks=${totalBooks}`;
+        }
+
+        function toggleView() {
+            const tableView = document.getElementById("bookTable");
+            const galleryView = document.getElementById("gallery");
+            const viewIcon = document.getElementById("viewIcon");
+            const viewText = document.getElementById("viewText");
+
+            // Add fade effect
+            tableView.classList.add("fade");
+            galleryView.classList.add("fade");
+
+            setTimeout(() => {
+                isGalleryView = !isGalleryView;
+                
+                if (isGalleryView) {
+                    tableView.classList.add("hidden");
+                    galleryView.classList.remove("hidden");
+                    viewIcon.textContent = "📊";
+                    viewText.textContent = "Switch to Table";
+                } else {
+                    galleryView.classList.add("hidden");
+                    tableView.classList.remove("hidden");
+                    viewIcon.textContent = "📋";
+                    viewText.textContent = "Switch to Gallery";
+                }
+
+                // Remove fade effect
+                tableView.classList.remove("fade");
+                galleryView.classList.remove("fade");
+
+                // Reset and reload
+                page = 1;
+                hasMore = true;
+                tableView.querySelector("tbody").innerHTML = "";
+                galleryView.innerHTML = "";
+                fetchBooks();
+            }, 300);
+        }
+
+        // Infinite scroll implementation with debounce
+        let scrollTimeout;
+        function handleScroll() {
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+
+            scrollTimeout = setTimeout(() => {
+                const scrollPosition = window.innerHeight + window.scrollY;
+                const bodyHeight = document.body.offsetHeight;
+                const threshold = 200;
+
+                if (scrollPosition >= bodyHeight - threshold && !loading && hasMore) {
+                    document.getElementById("loadingIndicator").classList.remove("hidden");
+                    fetchBooks().then(() => {
+                        document.getElementById("loadingIndicator").classList.add("hidden");
+                    });
+                }
+            }, 100);
+        }
+
+        // Add scroll event listener
+        window.addEventListener('scroll', handleScroll);
+
+        // Modal close functionality
+        document.querySelector(".close").addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById("bookModal").classList.add("hidden");
+        });
+
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById("bookModal");
+            if (event.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
+
+        // Add escape key listener for modal
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                document.getElementById("bookModal").classList.add("hidden");
+            }
+        });
+
+        // Event listeners for controls
+        document.querySelectorAll("#language, #seed, #avgLikes, #avgReviews").forEach(el => {
+            el.onchange = resetAndFetch;
+        });
+
+        // Initial load
+        fetchBooks();
+    </script>
+}
